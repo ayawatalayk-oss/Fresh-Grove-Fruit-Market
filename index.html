@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Grove Fruit Market — Smart Produce Scanner</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Fraunces (Playful Organic Serif) & Plus Jakarta Sans (Clean UI) & Patrick Hand (Chalkboard) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- TensorFlow.js & Teachable Machine Image Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Fraunces', 'Georgia', 'serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            chalk: ['Patrick Hand', 'cursive'],
+          },
+          colors: {
+            terracotta: '#C84B31',
+            terracottaDark: '#A33821',
+            cream: '#FDF8EE',
+            creamDark: '#F3E9D2',
+            forest: '#2D5A27',
+            forestLight: '#3E7B36',
+            wood: '#8B5A2B',
+            woodDark: '#5C3A18',
+            chalkboard: '#222926',
+            chalkBorder: '#6E4722',
+            sunlight: '#F4A261',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Market Textures & Organic Aesthetics */
+    body {
+      background-color: #FDF8EE;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(244, 162, 97, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(45, 90, 39, 0.08) 0%, transparent 45%),
+        repeating-linear-gradient(45deg, rgba(139, 90, 43, 0.02) 0px, rgba(139, 90, 43, 0.02) 2px, transparent 2px, transparent 10px);
+    }
+
+    /* Striped Farmers' Market Awning */
+    .market-awning {
+      background: repeating-linear-gradient(
+        90deg,
+        #C84B31 0px,
+        #C84B31 44px,
+        #FDF8EE 44px,
+        #FDF8EE 88px
+      );
+      position: relative;
+      box-shadow: 0 10px 25px -5px rgba(92, 58, 24, 0.25);
+    }
+
+    /* Scalloped Awning Trim */
+    .awning-scallops {
+      height: 22px;
+      background-image: radial-gradient(circle at 22px 0, #C84B31 22px, transparent 23px),
+                        radial-gradient(circle at 66px 0, #FDF8EE 22px, transparent 23px);
+      background-size: 88px 24px;
+      background-repeat: repeat-x;
+      filter: drop-shadow(0 5px 4px rgba(60, 35, 10, 0.18));
+    }
+
+    /* Warm Wood Countertop Texture */
+    .wood-counter {
+      background: linear-gradient(180deg, #9C6635 0%, #7D4E24 100%);
+      background-image:
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 3px, transparent 3px, transparent 18px),
+        linear-gradient(180deg, #9C6635 0%, #72451D 100%);
+      border-top: 4px solid #B87D48;
+      box-shadow: 0 -4px 20px rgba(60, 35, 10, 0.15);
+    }
+
+    /* Chalkboard Texture */
+    .chalkboard-surface {
+      background-color: #212825;
+      background-image:
+        radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0),
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.04), transparent 60%);
+      background-size: 20px 20px, 100% 100%;
+      border: 10px solid #6E4722;
+      box-shadow:
+        inset 0 0 28px rgba(0, 0, 0, 0.65),
+        0 12px 28px -6px rgba(60, 35, 10, 0.28);
+    }
+
+    /* Woven Basket Pattern */
+    .woven-accent {
+      background-color: #E7D2B1;
+      background-image:
+        linear-gradient(45deg, #D5B88E 25%, transparent 25%),
+        linear-gradient(-45deg, #D5B88E 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #D5B88E 75%),
+        linear-gradient(-45deg, transparent 75%, #D5B88E 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+
+    /* Scanner Laser Animation */
+    @keyframes scanLine {
+      0% { top: 6%; opacity: 0.2; }
+      50% { top: 90%; opacity: 0.9; }
+      100% { top: 6%; opacity: 0.2; }
+    }
+    .scanner-laser {
+      animation: scanLine 2.8s ease-in-out infinite;
+      background: linear-gradient(90deg, transparent, #6EE7B7, #A7F3D0, #6EE7B7, transparent);
+      box-shadow: 0 0 14px 2px rgba(110, 231, 183, 0.7);
+    }
+
+    /* Custom Scrollbar for Basket */
+    .chalk-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chalk-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+    }
+    .chalk-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 9999px;
+    }
+
+    /* Range Slider Styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #E5D7BE;
+      height: 8px;
+      border-radius: 9999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #2D5A27;
+      border: 3px solid #FDF8EE;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="text-stone-800 font-sans min-h-screen flex flex-col selection:bg-terracotta selection:text-white">
+
+  <!-- TOP FARMERS' MARKET STRIPED AWNING HEADER -->
+  <header class="w-full">
+    <div class="market-awning pt-4 pb-5 px-4 sm:px-8">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 bg-cream/95 backdrop-blur-sm border-4 border-woodDark rounded-2xl px-5 py-3.5 shadow-lg">
+        <!-- Brand Logo & Title -->
+        <div class="flex items-center gap-3.5 text-center sm:text-left">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-forest text-cream flex items-center justify-center text-2xl sm:text-3xl shadow-inner border-2 border-amber-300/60 shrink-0">
+            🧺
+          </div>
+          <div>
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-terracotta bg-terracotta/10 px-2.5 py-0.5 rounded-full">Est. 1984 • Organic Stand</span>
+            </div>
+            <h1 class="font-serif text-2xl sm:text-3xl font-extrabold text-woodDark tracking-tight mt-0.5">
+              Fresh Grove Fruit Market
+            </h1>
+          </div>
+        </div>
+
+        <!-- Status & Audio Controls -->
+        <div class="flex flex-wrap items-center justify-center gap-2.5">
+          <!-- Model Status Pill -->
+          <div id="model-status-badge" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 text-xs sm:text-sm font-semibold shadow-sm">
+            <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+            <span id="status-text">Loading Store AI...</span>
+          </div>
+
+          <!-- Sound Effects Toggle -->
+          <button id="sound-toggle-btn" type="button" title="Toggle register chime sound effects"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-creamDark hover:bg-amber-200/70 border border-wood/30 text-woodDark text-xs sm:text-sm font-semibold transition active:scale-95">
+            <span id="sound-icon">🔇</span>
+            <span id="sound-label">Chimes Off</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Scalloped Awning Bottom Edge -->
+    <div class="awning-scallops w-full"></div>
+  </header>
+
+  <!-- MAIN STOREFRONT COUNTER LAYOUT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Error / Notice Banner (Hidden by default) -->
+    <div id="alert-banner" class="hidden mb-6 rounded-2xl bg-red-50 border-2 border-red-300 p-4 flex items-start justify-between gap-4 shadow-sm">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">⚠️</span>
+        <div>
+          <h3 id="alert-title" class="font-bold text-red-900 text-sm sm:text-base">Store Notice</h3>
+          <p id="alert-message" class="text-red-800 text-xs sm:text-sm mt-0.5"></p>
+        </div>
+      </div>
+      <button id="alert-close-btn" type="button" class="text-red-700 hover:text-red-950 font-bold px-2 py-1 rounded-lg">✕</button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN (7 cols on lg): LIVE PRODUCE SCANNER & DIGITAL SCALE -->
+      <section class="lg:col-span-7 space-y-6">
+
+        <!-- 1. PRODUCE SCANNER STATION CARD -->
+        <div class="bg-white rounded-3xl border-2 border-wood/25 shadow-xl overflow-hidden">
+          <!-- Card Header -->
+          <div class="bg-creamDark/80 border-b border-wood/20 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">📸</span>
+              <div>
+                <h2 class="font-serif text-lg sm:text-xl font-bold text-woodDark">Produce Optical Scanner</h2>
+                <p class="text-xs text-stone-600">Hold a fruit up to the camera or drop a photo below</p>
+              </div>
+            </div>
+
+            <!-- Live Detection Badge -->
+            <div id="fresh-scan-badge" class="hidden items-center gap-1.5 bg-forest text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+              <span>✨</span>
+              <span>Fresh Scan!</span>
+            </div>
+          </div>
+
+          <!-- Scanner Viewport -->
+          <div class="p-4 sm:p-5">
+            <div id="drop-zone" class="relative w-full aspect-[4/3] sm:aspect-[16/10] bg-stone-900 rounded-2xl overflow-hidden border-4 border-woodDark/80 shadow-inner flex items-center justify-center group transition">
+
+              <!-- Idle State Overlay -->
+              <div id="scanner-placeholder" class="text-center p-6 max-w-md z-10">
+                <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-cream/10 border border-cream/20 flex items-center justify-center text-4xl">
+                  🍎🍌🍊
+                </div>
+                <h3 class="font-serif text-xl font-bold text-cream">Ready at the Checkout Counter</h3>
+                <p class="text-stone-300 text-xs sm:text-sm mt-1.5 leading-relaxed">
+                  Click <span class="text-amber-300 font-semibold">Open Camera</span> to scan live produce, or <span class="text-emerald-300 font-semibold">Upload Photo</span> to test with any fruit picture.
+                </p>
+              </div>
+
+              <!-- Webcam Container (Teachable Machine appends canvas here) -->
+              <div id="webcam-wrapper" class="hidden w-full h-full flex items-center justify-center"></div>
+
+              <!-- Uploaded Image Preview -->
+              <img id="uploaded-preview" alt="Uploaded produce preview" class="hidden max-h-full max-w-full object-contain rounded-lg" />
+
+              <!-- Animated Laser Line (visible when webcam is active) -->
+              <div id="scanner-laser" class="hidden scanner-laser absolute left-4 right-4 h-1 rounded-full pointer-events-none z-20"></div>
+
+              <!-- Corner Viewfinder Brackets -->
+              <div class="pointer-events-none absolute inset-3 border-2 border-white/20 rounded-xl z-10"></div>
+
+              <!-- Top Detected Floating Pill on Viewport -->
+              <div id="viewport-hud" class="hidden absolute bottom-3 left-3 right-3 z-20 bg-stone-950/80 backdrop-blur-md border border-white/15 rounded-xl px-4 py-2.5 flex items-center justify-between text-white">
+                <div class="flex items-center gap-2.5">
+                  <span id="hud-emoji" class="text-2xl">🍏</span>
+                  <div>
+                    <p class="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold">Identified Produce</p>
+                    <p id="hud-label" class="font-serif text-base sm:text-lg font-bold leading-tight">Scanning...</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span id="hud-confidence" class="inline-block bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg">
+                    0%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scanner Controls Bar -->
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="start-cam-btn" type="button" disabled
+                  class="flex items-center gap-2 bg-forest hover:bg-forestLight disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow-md transition active:scale-95">
+                  <span>📷</span>
+                  <span id="start-cam-text">Open Camera</span>
+                </button>
+
+                <button id="stop-cam-btn" type="button" class="hidden flex items-center gap-2 bg-terracotta hover:bg-terracottaDark text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow-md transition active:scale-95">
+                  <span>⏹️</span>
+                  <span>Stop Camera</span>
+                </button>
+
+                <button id="switch-cam-btn" type="button" class="hidden flex items-center gap-1.5 bg-creamDark hover:bg-amber-200/70 border border-wood/30 text-woodDark font-semibold text-sm px-3.5 py-2.5 rounded-xl transition active:scale-95" title="Switch Front/Back Camera">
+                  <span>🔄</span>
+                  <span class="hidden sm:inline">Flip Camera</span>
+                </button>
+              </div>
+
+              <!-- Upload Image Alternative -->
+              <div>
+                <label for="image-upload-input" id="upload-label-btn"
+                  class="cursor-pointer inline-flex items-center gap-2 bg-amber-100 hover:bg-amber-200 border border-amber-400/60 text-woodDark font-semibold text-sm px-4 py-2.5 rounded-xl shadow-sm transition active:scale-95">
+                  <span>🖼️</span>
+                  <span>Upload / Drop Photo</span>
+                </label>
+                <input id="image-upload-input" type="file" accept="image/*" class="hidden" />
+              </div>
+            </div>
+
+            <!-- Live Confidence Bars for ALL Model Classes -->
+            <div class="mt-5 pt-4 border-t border-stone-200">
+              <div class="flex items-center justify-between mb-2.5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500">Live Ripeness & Class Readings</h3>
+                <span id="class-count-pill" class="text-xs text-stone-500 font-medium">Awaiting model...</span>
+              </div>
+              <div id="predictions-container" class="space-y-2.5">
+                <!-- Populated dynamically from metadata.json -->
+                <div class="text-xs text-stone-400 italic py-2">Confidence bars will appear once the Teachable Machine model loads.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. DIGITAL PRODUCE SCALE & PRICE TAG -->
+        <div class="bg-white rounded-3xl border-2 border-wood/25 shadow-xl overflow-hidden">
+          <div class="bg-forest text-cream px-5 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">⚖️</span>
+              <h2 class="font-serif text-lg font-bold">Digital Produce Scale</h2>
+            </div>
+            <span class="text-xs bg-white/15 px-2.5 py-1 rounded-full font-medium">Certified Market Scale #04</span>
+          </div>
+
+          <div class="p-5 grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
+            <!-- Digital LCD Readout -->
+            <div class="sm:col-span-7 bg-stone-900 rounded-2xl p-4 border-4 border-stone-700 shadow-inner text-emerald-400 font-mono">
+              <div class="flex items-center justify-between text-[11px] text-stone-400 uppercase tracking-wider border-b border-stone-800 pb-1.5 mb-2.5">
+                <span>ITEM: <strong id="scale-item-name" class="text-amber-300">NONE</strong></span>
+                <span>UNIT: $/KG</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-stone-950/90 rounded-xl p-2 border border-stone-800">
+                  <div class="text-[10px] text-stone-400">WEIGHT (kg)</div>
+                  <div id="scale-weight-display" class="text-lg sm:text-xl font-bold text-emerald-300 mt-0.5">0.50</div>
+                </div>
+                <div class="bg-stone-950/90 rounded-xl p-2 border border-stone-800">
+                  <div class="text-[10px] text-stone-400">PRICE / KG</div>
+                  <div id="scale-unit-price" class="text-lg sm:text-xl font-bold text-amber-300 mt-0.5">$0.00</div>
+                </div>
+                <div class="bg-stone-950/90 rounded-xl p-2 border border-emerald-700/50">
+                  <div class="text-[10px] text-emerald-400">TOTAL</div>
+                  <div id="scale-total-price" class="text-lg sm:text-xl font-bold text-white mt-0.5">$0.00</div>
+                </div>
+              </div>
+
+              <!-- Weight Slider & Weigh Button -->
+              <div class="mt-3.5 pt-3 border-t border-stone-800">
+                <div class="flex items-center justify-between text-xs text-stone-300 mb-1.5">
+                  <label for="weight-slider">Adjust Bunch Weight:</label>
+                  <button id="random-weigh-btn" type="button" class="text-amber-300 hover:text-amber-200 underline font-sans text-xs font-semibold">
+                    🎲 Place on Scale
+                  </button>
+                </div>
+                <input id="weight-slider" type="range" min="0.15" max="3.00" step="0.05" value="0.50" class="w-full" />
+              </div>
+            </div>
+
+            <!-- Add to Basket Action Box -->
+            <div class="sm:col-span-5 flex flex-col justify-between h-full bg-cream rounded-2xl p-4 border border-wood/20 text-center">
+              <div>
+                <span class="inline-block text-xs font-bold uppercase tracking-wider text-terracotta bg-terracotta/10 px-2.5 py-0.5 rounded-full">
+                  Today's Harvest
+                </span>
+                <p id="scale-tag-title" class="font-serif text-xl font-bold text-woodDark mt-1.5">
+                  Scan a Fruit First
+                </p>
+                <p id="scale-tag-sub" class="text-xs text-stone-600 mt-0.5">
+                  Point camera at produce to weigh & price
+                </p>
+              </div>
+
+              <button id="add-to-basket-btn" type="button" disabled
+                class="mt-4 w-full flex items-center justify-center gap-2 bg-terracotta hover:bg-terracottaDark disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base py-3 px-4 rounded-xl shadow-md transition active:scale-95">
+                <span>🧺</span>
+                <span>Add to Basket</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN (5 cols on lg): CHALKBOARD MARKET BASKET & NUTRITION CLERK CARD -->
+      <aside class="lg:col-span-5 space-y-6">
+
+        <!-- 3. CHALKBOARD SHOPPING RECEIPT / MARKET BASKET -->
+        <div class="chalkboard-surface rounded-3xl p-5 sm:p-6 text-cream">
+          <!-- Chalkboard Header -->
+          <div class="flex items-center justify-between border-b-2 border-dashed border-white/25 pb-3">
+            <div>
+              <h2 class="font-chalk text-2xl sm:text-3xl text-amber-200 tracking-wide">
+                Fresh Grove Market Basket
+              </h2>
+              <p class="text-xs text-stone-300">Chalkboard Receipt • Organic Farm Direct</p>
+            </div>
+            <button id="clear-basket-btn" type="button" class="text-xs font-semibold text-stone-300 hover:text-red-300 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-lg transition">
+              Clear All
+            </button>
+          </div>
+
+          <!-- Basket Items List -->
+          <div id="basket-items-list" class="chalk-scroll my-4 max-h-64 overflow-y-auto space-y-2.5 pr-1">
+            <!-- Empty state -->
+            <div id="empty-basket-msg" class="text-center py-8 text-stone-400">
+              <div class="text-4xl mb-2 opacity-80">🧺</div>
+              <p class="font-chalk text-xl text-stone-300">Your woven basket is empty!</p>
+              <p class="text-xs text-stone-400 mt-1">Scan a fruit and click "Add to Basket" to start shopping.</p>
+            </div>
+          </div>
+
+          <!-- Totals & Farmers' Market Discount -->
+          <div class="border-t-2 border-dashed border-white/25 pt-3.5 space-y-1.5 font-chalk text-lg sm:text-xl">
+            <div class="flex justify-between text-stone-300">
+              <span>Subtotal (<span id="basket-item-count">0</span> items):</span>
+              <span id="basket-subtotal">$0.00</span>
+            </div>
+            <div class="flex justify-between text-emerald-300">
+              <span>Local Harvest Loyalty (10%):</span>
+              <span id="basket-discount">-$0.00</span>
+            </div>
+            <div class="flex justify-between text-2xl sm:text-3xl text-amber-300 pt-1.5 border-t border-white/15">
+              <span>Total Due:</span>
+              <span id="basket-total">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Checkout Button -->
+          <button id="checkout-btn" type="button" disabled
+            class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-stone-700 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-bold py-3 px-5 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95">
+            <span>🧾</span>
+            <span>Complete Market Checkout</span>
+          </button>
+        </div>
+
+        <!-- 4. NUTRITION & FRESHNESS CLERK TIPS CARD -->
+        <div class="woven-accent rounded-3xl p-1.5 shadow-lg border border-wood/30">
+          <div class="bg-cream rounded-[20px] p-5">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <div class="flex items-center gap-2.5">
+                <span id="tip-fruit-emoji" class="text-3xl bg-amber-100 w-12 h-12 rounded-2xl flex items-center justify-center border border-amber-300/60">🌿</span>
+                <div>
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-forest">Market Clerk's Notes</span>
+                  <h3 id="tip-fruit-title" class="font-serif text-lg sm:text-xl font-bold text-woodDark">
+                    Seasonal Produce Guide
+                  </h3>
+                </div>
+              </div>
+              <span id="tip-season-badge" class="text-xs font-semibold bg-forest/10 text-forest px-2.5 py-1 rounded-full">
+                Peak Freshness
+              </span>
+            </div>
+
+            <div class="space-y-3 text-sm text-stone-700">
+              <!-- Ripeness Check -->
+              <div class="bg-white/90 rounded-xl p-3 border border-wood/15">
+                <p class="text-xs font-bold uppercase tracking-wide text-terracotta mb-0.5">🔍 How to Pick the Best One</p>
+                <p id="tip-ripeness" class="text-xs sm:text-sm leading-relaxed text-stone-700">
+                  Scan any fruit at the counter to reveal our grocer's secret tips on aroma, firmness, and peak ripeness!
+                </p>
+              </div>
+
+              <!-- Nutrition Highlight -->
+              <div class="bg-white/90 rounded-xl p-3 border border-wood/15">
+                <p class="text-xs font-bold uppercase tracking-wide text-forest mb-0.5">🥗 Nutrition & Storage</p>
+                <p id="tip-nutrition" class="text-xs sm:text-sm leading-relaxed text-stone-700">
+                  Fresh whole fruits are packed with natural fiber, antioxidants, and essential vitamins to brighten your day.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </main>
+
+  <!-- WOODEN STOREFRONT FOOTER -->
+  <footer class="wood-counter text-cream/90 py-4 px-4 mt-8">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+      <p class="font-medium">🌻 Fresh Grove Fruit Market • Powered by Google Teachable Machine & TensorFlow.js</p>
+      <p class="text-amber-200/90">Model ID: <code class="bg-black/25 px-2 py-0.5 rounded">Vh6CRSZnK</code></p>
+    </div>
+  </footer>
+
+  <!-- CELEBRATORY RECEIPT MODAL -->
+  <div id="receipt-modal" class="hidden fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-cream max-w-md w-full rounded-3xl border-4 border-woodDark shadow-2xl overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+      <div class="bg-forest text-cream px-6 py-4 text-center">
+        <div class="text-4xl mb-1">🎉🧺🍎</div>
+        <h3 class="font-serif text-2xl font-bold">Thank You for Visiting!</h3>
+        <p class="text-xs text-emerald-100">Fresh Grove Fruit Market • Official Receipt</p>
+      </div>
+
+      <div class="p-6">
+        <div class="bg-white rounded-2xl border-2 border-dashed border-stone-300 p-4 font-mono text-xs space-y-2 max-h-60 overflow-y-auto" id="modal-receipt-body">
+          <!-- Receipt lines injected here -->
+        </div>
+
+        <div class="mt-4 flex items-center justify-between font-serif text-lg font-bold text-woodDark px-1">
+          <span>Total Paid:</span>
+          <span id="modal-receipt-total" class="text-forest text-xl">$0.00</span>
+        </div>
+
+        <button id="close-modal-btn" type="button"
+          class="mt-5 w-full bg-terracotta hover:bg-terracottaDark text-white font-bold py-3 px-4 rounded-xl shadow-md transition active:scale-95">
+          Start New Basket
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    /**
+     * Fresh Grove Fruit Market — Teachable Machine Integration
+     * Model URL: https://teachablemachine.withgoogle.com/models/Vh6CRSZnK/
+     */
+    const MODEL_BASE_URL = "https://teachablemachine.withgoogle.com/models/Vh6CRSZnK/";
+
+    // Rich Produce Knowledge Base (matches common fruits + smart fallback for any custom class label)
+    const PRODUCE_CATALOG = {
+      apple: {
+        emoji: "🍎",
+        pricePerKg: 3.49,
+        season: "Autumn Crisp",
+        ripeness: "Look for firm, unbruised skin with vibrant color and a sweet, fresh orchard scent near the stem.",
+        nutrition: "Rich in soluble fiber (pectin) and vitamin C. Store in the crisper drawer to keep them crunchy for weeks!"
+      },
+      banana: {
+        emoji: "🍌",
+        pricePerKg: 1.79,
+        season: "Year-Round Tropical",
+        ripeness: "Bright yellow peels with tiny brown 'sugar freckles' indicate peak sweetness. Green tips are great if eating in 2–3 days.",
+        nutrition: "Loaded with potassium and vitamin B6 for natural energy. Keep at room temperature away from direct sunlight."
+      },
+      orange: {
+        emoji: "🍊",
+        pricePerKg: 2.99,
+        season: "Citrus Harvest",
+        ripeness: "Choose oranges that feel heavy for their size—heaviness means thin skin bursting with sweet juice!",
+        nutrition: "An immune-boosting powerhouse of vitamin C, folate, and flavonoids. Great chilled or freshly squeezed."
+      },
+      strawberry: {
+        emoji: "🍓",
+        pricePerKg: 5.99,
+        season: "Berry Patch Special",
+        ripeness: "Pick bright red berries with fresh green caps and a fragrant aroma. Wash right before eating to maintain freshness.",
+        nutrition: "Packed with antioxidants, manganese, and vitamin C while naturally low in sugar."
+      },
+      grape: {
+        emoji: "🍇",
+        pricePerKg: 4.49,
+        season: "Vineyard Fresh",
+        ripeness: "Look for plump, firm berries firmly attached to green, pliable stems with a natural silvery 'bloom'.",
+        nutrition: "Contains heart-healthy resveratrol and hydration. Try freezing a handful for a refreshing summer treat!"
+      },
+      mango: {
+        emoji: "🥭",
+        pricePerKg: 4.29,
+        season: "Tropical Grove",
+        ripeness: "Give it a gentle squeeze—a ripe mango yields slightly like a peach and smells fruity near the stem.",
+        nutrition: "Bursting with vitamins A and C plus digestive enzymes. Ripen on the counter, then refrigerate."
+      },
+      pineapple: {
+        emoji: "🍍",
+        pricePerKg: 3.89,
+        season: "Island Sweet",
+        ripeness: "Smell the base for a sweet tropical aroma and look for golden-yellow color creeping up from the bottom.",
+        nutrition: "Contains bromelain (a natural digestive enzyme) and over 100% of your daily vitamin C."
+      },
+      watermelon: {
+        emoji: "🍉",
+        pricePerKg: 1.49,
+        season: "Summer Picnic",
+        ripeness: "Look for a creamy yellow 'field spot' where it rested on the ground, and give it a tap for a deep hollow sound.",
+        nutrition: "92% water plus lycopene and citrulline—the ultimate refreshing hydration fruit."
+      },
+      lemon: {
+        emoji: "🍋",
+        pricePerKg: 3.19,
+        season: "Zesty Citrus",
+        ripeness: "Select glossy, finely textured skin that feels heavy and yields slightly to gentle pressure.",
+        nutrition: "Brightens any dish with vitamin C and citric acid without adding sodium."
+      },
+      peach: {
+        emoji: "🍑",
+        pricePerKg: 4.59,
+        season: "Orchard Sun",
+        ripeness: "A sweet fragrance and slight give along the seam signal a juicy, ready-to-eat peach.",
+        nutrition: "Provides vitamins A, C, and E along with gentle dietary fiber."
+      },
+      pear: {
+        emoji: "🍐",
+        pricePerKg: 3.69,
+        season: "Orchard Harvest",
+        ripeness: "Check the neck! Gently press near the stem—when it gives slightly, your pear is perfectly ripe.",
+        nutrition: "One of the highest-fiber fruits available, supporting heart and digestive health."
+      },
+      kiwi: {
+        emoji: "🥝",
+        pricePerKg: 4.99,
+        season: "Emerald Tart-Sweet",
+        ripeness: "Should yield gently to thumb pressure without feeling mushy. Firm kiwis ripen on the counter in 2 days.",
+        nutrition: "More vitamin C per ounce than an orange, plus vitamin K and potassium."
+      },
+      avocado: {
+        emoji: "🥑",
+        pricePerKg: 5.49,
+        season: "Creamy Grove",
+        ripeness: "Yields to gentle palm pressure. Pop off the tiny stem cap—green underneath means creamy perfection!",
+        nutrition: "Rich in heart-healthy monounsaturated fats, fiber, and potassium."
+      },
+      tomato: {
+        emoji: "🍅",
+        pricePerKg: 3.29,
+        season: "Vine Ripened",
+        ripeness: "Deep rich color, fragrant earthy vine scent, and heavy feel. Keep on the counter for best flavor!",
+        nutrition: "Loaded with lycopene, potassium, and vitamin C."
+      }
+    };
+
+    // Application State
+    let model = null;
+    let maxPredictions = 0;
+    let webcam = null;
+    let isWebcamRunning = false;
+    let animationFrameId = null;
+    let facingMode = "environment"; // Prefer back camera on mobile, auto-fallback on desktop
+    let currentTopClass = null;
+    let currentTopConfidence = 0;
+    let lastChimedClass = null;
+    let lastChimeTime = 0;
+    let soundEnabled = false;
+    let audioCtx = null;
+    let basket = [];
+
+    // DOM Elements
+    const statusBadge = document.getElementById("model-status-badge");
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+    const startCamBtn = document.getElementById("start-cam-btn");
+    const stopCamBtn = document.getElementById("stop-cam-btn");
+    const switchCamBtn = document.getElementById("switch-cam-btn");
+    const imageUploadInput = document.getElementById("image-upload-input");
+    const dropZone = document.getElementById("drop-zone");
+    const scannerPlaceholder = document.getElementById("scanner-placeholder");
+    const webcamWrapper = document.getElementById("webcam-wrapper");
+    const uploadedPreview = document.getElementById("uploaded-preview");
+    const scannerLaser = document.getElementById("scanner-laser");
+    const viewportHud = document.getElementById("viewport-hud");
+    const hudEmoji = document.getElementById("hud-emoji");
+    const hudLabel = document.getElementById("hud-label");
+    const hudConfidence = document.getElementById("hud-confidence");
+    const freshScanBadge = document.getElementById("fresh-scan-badge");
+    const predictionsContainer = document.getElementById("predictions-container");
+    const classCountPill = document.getElementById("class-count-pill");
+
+    // Scale & Basket Elements
+    const scaleItemName = document.getElementById("scale-item-name");
+    const scaleWeightDisplay = document.getElementById("scale-weight-display");
+    const scaleUnitPrice = document.getElementById("scale-unit-price");
+    const scaleTotalPrice = document.getElementById("scale-total-price");
+    const weightSlider = document.getElementById("weight-slider");
+    const randomWeighBtn = document.getElementById("random-weigh-btn");
+    const scaleTagTitle = document.getElementById("scale-tag-title");
+    const scaleTagSub = document.getElementById("scale-tag-sub");
+    const addToBasketBtn = document.getElementById("add-to-basket-btn");
+
+    const basketItemsList = document.getElementById("basket-items-list");
+    const emptyBasketMsg = document.getElementById("empty-basket-msg");
+    const basketItemCount = document.getElementById("basket-item-count");
+    const basketSubtotal = document.getElementById("basket-subtotal");
+    const basketDiscount = document.getElementById("basket-discount");
+    const basketTotal = document.getElementById("basket-total");
+    const clearBasketBtn = document.getElementById("clear-basket-btn");
+    const checkoutBtn = document.getElementById("checkout-btn");
+
+    // Clerk Tips Elements
+    const tipFruitEmoji = document.getElementById("tip-fruit-emoji");
+    const tipFruitTitle = document.getElementById("tip-fruit-title");
+    const tipSeasonBadge = document.getElementById("tip-season-badge");
+    const tipRipeness = document.getElementById("tip-ripeness");
+    const tipNutrition = document.getElementById("tip-nutrition");
+
+    // Alert & Modal Elements
+    const alertBanner = document.getElementById("alert-banner");
+    const alertTitle = document.getElementById("alert-title");
+    const alertMessage = document.getElementById("alert-message");
+    const alertCloseBtn = document.getElementById("alert-close-btn");
+    const receiptModal = document.getElementById("receipt-modal");
+    const modalReceiptBody = document.getElementById("modal-receipt-body");
+    const modalReceiptTotal = document.getElementById("modal-receipt-total");
+    const closeModalBtn = document.getElementById("close-modal-btn");
+
+    // Sound Toggle Elements
+    const soundToggleBtn = document.getElementById("sound-toggle-btn");
+    const soundIcon = document.getElementById("sound-icon");
+    const soundLabel = document.getElementById("sound-label");
+
+    /**
+     * Helper: Show non-blocking market notice banner
+     */
+    function showNotice(title, message) {
+      alertTitle.textContent = title;
+      alertMessage.textContent = message;
+      alertBanner.classList.remove("hidden");
+    }
+
+    alertCloseBtn.addEventListener("click", () => {
+      alertBanner.classList.add("hidden");
+    });
+
+    /**
+     * Helper: Update Top Status Pill
+     */
+    function setStatus(state, text) {
+      statusText.textContent = text;
+      statusBadge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold shadow-sm transition ";
+      statusDot.className = "w-2.5 h-2.5 rounded-full ";
+
+      if (state === "loading") {
+        statusBadge.className += "bg-amber-100 border-amber-300 text-amber-900";
+        statusDot.className += "bg-amber-500 animate-pulse";
+      } else if (state === "ready") {
+        statusBadge.className += "bg-emerald-100 border-emerald-300 text-emerald-900";
+        statusDot.className += "bg-emerald-600";
+      } else if (state === "active") {
+        statusBadge.className += "bg-forest text-white border-forestLight";
+        statusDot.className += "bg-emerald-300 animate-ping";
+      } else if (state === "error") {
+        statusBadge.className += "bg-red-100 border-red-300 text-red-900";
+        statusDot.className += "bg-red-600";
+      }
+    }
+
+    /**
+     * Helper: Web Audio API Pleasant Market Chimes (No external audio files needed)
+     */
+    function playMarketTone(type = "scan") {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === "scan") {
+          // Soft wooden marimba-like ping
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(660, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } else if (type === "basket") {
+          // Cheerful double register chime
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(783.99, now + 0.09); // G5
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.29);
+        } else if (type === "checkout") {
+          // Celebratory triad arpeggio
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          osc.frequency.setValueAtTime(1046.5, now + 0.2);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.46);
+        }
+      } catch (e) {
+        // Silently ignore if browser blocks audio
+      }
+    }
+
+    soundToggleBtn.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundIcon.textContent = soundEnabled ? "🔔" : "🔇";
+      soundLabel.textContent = soundEnabled ? "Chimes On" : "Chimes Off";
+      if (soundEnabled) playMarketTone("scan");
+    });
+
+    /**
+     * Helper: Match any dynamic class label from Teachable Machine to produce metadata
+     */
+    function getProduceDetails(rawLabel) {
+      const clean = (rawLabel || "").trim();
+      const lower = clean.toLowerCase();
+
+      // Check if label matches or contains any known fruit key
+      for (const [key, data] of Object.entries(PRODUCE_CATALOG)) {
+        if (lower === key || lower.includes(key)) {
+          return { name: clean, ...data };
+        }
+      }
+
+      // Deterministic price & friendly fallback for any custom model class label
+      let hash = 0;
+      for (let i = 0; i < clean.length; i++) {
+        hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const generatedPrice = (2.29 + (Math.abs(hash) % 350) / 100).toFixed(2);
+
+      return {
+        name: clean || "Farm Produce",
+        emoji: "🧺",
+        pricePerKg: parseFloat(generatedPrice),
+        season: "Fresh Harvest",
+        ripeness: `Inspect "${clean}" for vibrant natural color, firm texture, and fresh garden aroma before adding to your basket.`,
+        nutrition: `Freshly harvested ${clean} offers natural plant nutrients, hydration, and wholesome farm-stand goodness.`
+      };
+    }
+
+    /**
+     * 1. Initialize & Load Teachable Machine Model
+     */
+    async function initTeachableMachine() {
+      try {
+        setStatus("loading", "Loading Store AI...");
+        const modelURL = MODEL_BASE_URL + "model.json";
+        const metadataURL = MODEL_BASE_URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+        const labels = model.getClassLabels();
+
+        classCountPill.textContent = `${maxPredictions} Produce Varieties Ready`;
+        buildPredictionBars(labels);
+
+        setStatus("ready", "Ready to Scan");
+        startCamBtn.disabled = false;
+      } catch (error) {
+        console.error("Failed to load Teachable Machine model:", error);
+        setStatus("error", "Model Load Failed");
+        showNotice(
+          "Could Not Connect to Store AI Model",
+          "Please check your internet connection and refresh the page to load the Teachable Machine produce scanner."
+        );
+      }
+    }
+
+    /**
+     * Build Confidence Bar Rows dynamically for every class in metadata.json
+     */
+    function buildPredictionBars(labels) {
+      predictionsContainer.innerHTML = "";
+      labels.forEach((label, idx) => {
+        const info = getProduceDetails(label);
+        const row = document.createElement("div");
+        row.className = "bg-cream/60 rounded-xl px-3 py-2 border border-wood/15 transition";
+        row.id = `pred-row-${idx}`;
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs sm:text-sm mb-1">
+            <span class="font-semibold text-stone-800 flex items-center gap-1.5">
+              <span>${info.emoji}</span>
+              <span>${label}</span>
+            </span>
+            <span id="pred-pct-${idx}" class="font-mono font-bold text-stone-600">0%</span>
+          </div>
+          <div class="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
+            <div id="pred-bar-${idx}" class="h-full bg-forest rounded-full transition-all duration-150" style="width: 0%"></div>
+          </div>
+        `;
+        predictionsContainer.appendChild(row);
+      });
+    }
+
+    /**
+     * 2. Start Webcam Feed
+     */
+    async function startWebcam() {
+      if (!model) return;
+      try {
+        stopWebcam(); // Clean up any existing stream
+        uploadedPreview.classList.add("hidden");
+        scannerPlaceholder.classList.add("hidden");
+
+        setStatus("loading", "Starting Camera...");
+        const flip = facingMode === "user";
+        webcam = new tmImage.Webcam(480, 360, flip);
+
+        try {
+          await webcam.setup({ facingMode: facingMode });
+        } catch (constraintErr) {
+          // Fallback if requested facingMode isn't supported on device
+          await webcam.setup();
+        }
+
+        await webcam.play();
+        isWebcamRunning = true;
+
+        // Style the Teachable Machine canvas to fit responsively
+        webcamWrapper.innerHTML = "";
+        webcam.canvas.className = "w-full h-full object-cover";
+        webcamWrapper.appendChild(webcam.canvas);
+        webcamWrapper.classList.remove("hidden");
+
+        scannerLaser.classList.remove("hidden");
+        viewportHud.classList.remove("hidden");
+        startCamBtn.classList.add("hidden");
+        stopCamBtn.classList.remove("hidden");
+        switchCamBtn.classList.remove("hidden");
+        setStatus("active", "Scanner Live");
+
+        animationFrameId = window.requestAnimationFrame(webcamLoop);
+      } catch (err) {
+        console.error("Webcam access error:", err);
+        setStatus("ready", "Camera Blocked");
+        scannerPlaceholder.classList.remove("hidden");
+        showNotice(
+          "Camera Permission Needed",
+          "We couldn't access your webcam. Please allow camera permissions in your browser, or use the 'Upload / Drop Photo' button to test with a fruit picture!"
+        );
+      }
+    }
+
+    /**
+     * Stop Webcam Feed
+     */
+    function stopWebcam() {
+      isWebcamRunning = false;
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (webcam) {
+        try {
+          webcam.stop();
+        } catch (e) {}
+        webcam = null;
+      }
+      webcamWrapper.classList.add("hidden");
+      scannerLaser.classList.add("hidden");
+      stopCamBtn.classList.add("hidden");
+      switchCamBtn.classList.add("hidden");
+      startCamBtn.classList.remove("hidden");
+
+      if (uploadedPreview.classList.contains("hidden")) {
+        scannerPlaceholder.classList.remove("hidden");
+        viewportHud.classList.add("hidden");
+        freshScanBadge.classList.add("hidden");
+      }
+      if (model) setStatus("ready", "Ready to Scan");
+    }
+
+    /**
+     * Continuous Webcam Prediction Loop
+     */
+    async function webcamLoop() {
+      if (!isWebcamRunning || !webcam) return;
+      webcam.update();
+      await predictSource(webcam.canvas);
+      animationFrameId = window.requestAnimationFrame(webcamLoop);
+    }
+
+    /**
+     * Run Teachable Machine Prediction on Canvas or Image Element
+     */
+    async function predictSource(sourceElement) {
+      if (!model) return;
+      const predictions = await model.predict(sourceElement);
+
+      let highestProb = -1;
+      let bestClass = "";
+
+      predictions.forEach((p, idx) => {
+        const pct = Math.round(p.probability * 100);
+        const barEl = document.getElementById(`pred-bar-${idx}`);
+        const pctEl = document.getElementById(`pred-pct-${idx}`);
+        const rowEl = document.getElementById(`pred-row-${idx}`);
+
+        if (barEl && pctEl && rowEl) {
+          barEl.style.width = `${pct}%`;
+          pctEl.textContent = `${pct}%`;
+
+          if (p.probability > highestProb) {
+            highestProb = p.probability;
+            bestClass = p.className;
+          }
+        }
+      });
+
+      // Highlight top row
+      predictions.forEach((p, idx) => {
+        const barEl = document.getElementById(`pred-bar-${idx}`);
+        const rowEl = document.getElementById(`pred-row-${idx}`);
+        if (!barEl || !rowEl) return;
+
+        if (p.className === bestClass && highestProb >= 0.55) {
+          rowEl.classList.add("border-forest", "bg-emerald-50/80", "shadow-sm");
+          barEl.classList.remove("bg-forest");
+          barEl.classList.add("bg-terracotta");
+        } else {
+          rowEl.classList.remove("border-forest", "bg-emerald-50/80", "shadow-sm");
+          barEl.classList.add("bg-forest");
+          barEl.classList.remove("bg-terracotta");
+        }
+      });
+
+      updateDetectedFruitUI(bestClass, highestProb);
+    }
+
+    /**
+     * Update HUD, Digital Produce Scale, and Clerk Tips for the Top Prediction
+     */
+    function updateDetectedFruitUI(className, probability) {
+      const pct = Math.round(probability * 100);
+      const info = getProduceDetails(className);
+
+      // Update Viewport HUD
+      hudEmoji.textContent = info.emoji;
+      hudLabel.textContent = className;
+      hudConfidence.textContent = `${pct}% match`;
+
+      // Show "Fresh Scan!" badge if confidence is strong (>= 65%)
+      if (probability >= 0.65) {
+        freshScanBadge.classList.remove("hidden");
+        freshScanBadge.classList.add("flex");
+
+        // Gentle chime when a new fruit is locked in
+        const now = Date.now();
+        if (className !== lastChimedClass && now - lastChimeTime > 2200) {
+          playMarketTone("scan");
+          lastChimedClass = className;
+          lastChimeTime = now;
+        }
+      } else {
+        freshScanBadge.classList.add("hidden");
+        freshScanBadge.classList.remove("flex");
+      }
+
+      // Update active detected state & scale if reasonably confident (>= 40%)
+      if (probability >= 0.40) {
+        const isNewFruit = currentTopClass !== className;
+        currentTopClass = className;
+        currentTopConfidence = probability;
+
+        updateScaleDisplay();
+        addToBasketBtn.disabled = false;
+
+        if (isNewFruit) {
+          // Update Market Clerk's Nutrition & Ripeness Card
+          tipFruitEmoji.textContent = info.emoji;
+          tipFruitTitle.textContent = `${className} — Clerk's Guide`;
+          tipSeasonBadge.textContent = info.season;
+          tipRipeness.textContent = info.ripeness;
+          tipNutrition.textContent = info.nutrition;
+        }
+      }
+    }
+
+    /**
+     * Update Digital Produce Scale Readout
+     */
+    function updateScaleDisplay() {
+      const weight = parseFloat(weightSlider.value);
+      scaleWeightDisplay.textContent = weight.toFixed(2);
+
+      if (!currentTopClass) {
+        scaleItemName.textContent = "NONE";
+        scaleUnitPrice.textContent = "$0.00";
+        scaleTotalPrice.textContent = "$0.00";
+        scaleTagTitle.textContent = "Scan a Fruit First";
+        scaleTagSub.textContent = "Point camera at produce to weigh & price";
+        return;
+      }
+
+      const info = getProduceDetails(currentTopClass);
+      const total = weight * info.pricePerKg;
+
+      scaleItemName.textContent = currentTopClass.toUpperCase();
+      scaleUnitPrice.textContent = `$${info.pricePerKg.toFixed(2)}`;
+      scaleTotalPrice.textContent = `$${total.toFixed(2)}`;
+      scaleTagTitle.textContent = `${info.emoji} ${currentTopClass}`;
+      scaleTagSub.textContent = `$${info.pricePerKg.toFixed(2)}/kg • ${weight.toFixed(2)} kg on scale`;
+    }
+
+    weightSlider.addEventListener("input", updateScaleDisplay);
+
+    randomWeighBtn.addEventListener("click", () => {
+      // Simulate placing a realistic bunch/piece of fruit on the scale (0.25kg to 2.20kg)
+      const randomWeight = (Math.floor(Math.random() * 40) + 5) * 0.05;
+      weightSlider.value = randomWeight.toFixed(2);
+      updateScaleDisplay();
+      playMarketTone("scan");
+    });
+
+    /**
+     * 3. Handle Image Upload & Drag-and-Drop Alternative
+     */
+    function handleImageFile(file) {
+      if (!file || !file.type.startsWith("image/")) {
+        showNotice("Invalid File", "Please choose an image file (JPG, PNG, or WebP) of a fruit.");
+        return;
+      }
+      if (!model) {
+        showNotice("Still Loading", "Please wait a moment for the Teachable Machine model to finish loading.");
+        return;
+      }
+
+      stopWebcam();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        uploadedPreview.src = e.target.result;
+        uploadedPreview.onload = async () => {
+          scannerPlaceholder.classList.add("hidden");
+          uploadedPreview.classList.remove("hidden");
+          viewportHud.classList.remove("hidden");
+          setStatus("ready", "Photo Scanned");
+          await predictSource(uploadedPreview);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    imageUploadInput.addEventListener("change", (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleImageFile(e.target.files[0]);
+      }
+    });
+
+    // Drag & drop support on the scanner viewport
+    ["dragenter", "dragover"].forEach((evtName) => {
+      dropZone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add("ring-4", "ring-emerald-400");
+      });
+    });
+    ["dragleave", "drop"].forEach((evtName) => {
+      dropZone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("ring-4", "ring-emerald-400");
+      });
+    });
+    dropZone.addEventListener("drop", (e) => {
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleImageFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    /**
+     * Camera Control Button Listeners
+     */
+    startCamBtn.addEventListener("click", startWebcam);
+    stopCamBtn.addEventListener("click", stopWebcam);
+    switchCamBtn.addEventListener("click", () => {
+      facingMode = facingMode === "environment" ? "user" : "environment";
+      startWebcam();
+    });
+
+    /**
+     * 4. Chalkboard Market Basket (Shopping Cart) Logic
+     */
+    addToBasketBtn.addEventListener("click", () => {
+      if (!currentTopClass) return;
+
+      const info = getProduceDetails(currentTopClass);
+      const weight = parseFloat(weightSlider.value);
+      const lineTotal = parseFloat((weight * info.pricePerKg).toFixed(2));
+
+      basket.push({
+        id: Date.now() + Math.random(),
+        name: currentTopClass,
+        emoji: info.emoji,
+        weight: weight,
+        unitPrice: info.pricePerKg,
+        total: lineTotal
+      });
+
+      playMarketTone("basket");
+      renderBasket();
+    });
+
+    function removeBasketItem(id) {
+      basket = basket.filter((item) => item.id !== id);
+      renderBasket();
+    }
+
+    clearBasketBtn.addEventListener("click", () => {
+      basket = [];
+      renderBasket();
+    });
+
+    function renderBasket() {
+      // Clear current list except empty state template
+      basketItemsList.innerHTML = "";
+
+      if (basket.length === 0) {
+        basketItemsList.appendChild(emptyBasketMsg);
+        basketItemCount.textContent = "0";
+        basketSubtotal.textContent = "$0.00";
+        basketDiscount.textContent = "-$0.00";
+        basketTotal.textContent = "$0.00";
+        checkoutBtn.disabled = true;
+        return;
+      }
+
+      checkoutBtn.disabled = false;
+      let subtotal = 0;
+
+      basket.forEach((item) => {
+        subtotal += item.total;
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between bg-white/10 hover:bg-white/15 rounded-xl px-3.5 py-2.5 border border-white/10 transition";
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">${item.emoji}</span>
+            <div>
+              <p class="font-chalk text-xl text-cream leading-none">${item.name}</p>
+              <p class="text-xs text-stone-300 mt-1">${item.weight.toFixed(2)} kg @ $${item.unitPrice.toFixed(2)}/kg</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="font-chalk text-xl text-amber-300">$${item.total.toFixed(2)}</span>
+            <button type="button" aria-label="Remove ${item.name}"
+              class="text-stone-400 hover:text-red-300 text-sm font-bold px-2 py-1 rounded-lg bg-black/20 transition">
+              ✕
+            </button>
+          </div>
+        `;
+        row.querySelector("button").addEventListener("click", () => removeBasketItem(item.id));
+        basketItemsList.appendChild(row);
+      });
+
+      const discount = subtotal * 0.10;
+      const finalTotal = subtotal - discount;
+
+      basketItemCount.textContent = basket.length;
+      basketSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      basketDiscount.textContent = `-$${discount.toFixed(2)}`;
+      basketTotal.textContent = `$${finalTotal.toFixed(2)}`;
+    }
+
+    /**
+     * Celebratory Checkout Receipt Modal
+     */
+    checkoutBtn.addEventListener("click", () => {
+      if (basket.length === 0) return;
+
+      playMarketTone("checkout");
+      let subtotal = 0;
+      modalReceiptBody.innerHTML = "";
+
+      basket.forEach((item) => {
+        subtotal += item.total;
+        const line = document.createElement("div");
+        line.className = "flex justify-between text-stone-700";
+        line.innerHTML = `
+          <span>${item.emoji} ${item.name} (${item.weight.toFixed(2)}kg)</span>
+          <span class="font-bold">$${item.total.toFixed(2)}</span>
+        `;
+        modalReceiptBody.appendChild(line);
+      });
+
+      const discount = subtotal * 0.10;
+      const finalTotal = subtotal - discount;
+
+      const summaryDivider = document.createElement("div");
+      summaryDivider.className = "border-t border-dashed border-stone-300 pt-2 mt-2 space-y-1 text-stone-600";
+      summaryDivider.innerHTML = `
+        <div class="flex justify-between"><span>Subtotal:</span><span>$${subtotal.toFixed(2)}</span></div>
+        <div class="flex justify-between text-forest font-semibold"><span>Farmers' Market 10% Off:</span><span>-$${discount.toFixed(2)}</span></div>
+      `;
+      modalReceiptBody.appendChild(summaryDivider);
+
+      modalReceiptTotal.textContent = `$${finalTotal.toFixed(2)}`;
+      receiptModal.classList.remove("hidden");
+    });
+
+    closeModalBtn.addEventListener("click", () => {
+      receiptModal.classList.add("hidden");
+      basket = [];
+      renderBasket();
+    });
+
+    // Boot up the Teachable Machine model on page load
+    window.addEventListener("DOMContentLoaded", initTeachableMachine);
+  </script>
+</body>
+</html>
